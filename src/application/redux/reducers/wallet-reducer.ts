@@ -257,7 +257,7 @@ export function walletReducer(
     case ACTION_TYPES.SET_CUSTOM_CONSTRUCTOR_PARAMS: {
       const accountID = payload.accountID as AccountID;
       const network = payload.network as NetworkString;
-      const customParams = payload.params as Record<string, string | number>;
+      const customParams = payload.constructorsParams as Record<string, string | number>;
       return {
         ...state,
         accounts: {
@@ -283,7 +283,7 @@ export function walletReducer(
     case ACTION_TYPES.SET_CUSTOM_CHANGE_CONSTRUCTOR_PARAMS: {
       const accountID = payload.accountID as AccountID;
       const network = payload.network as NetworkString;
-      const customParams = payload.params as Record<string, string | number>;
+      const customParams = payload.constructorsParams as Record<string, string | number>;
       return {
         ...state,
         accounts: {
