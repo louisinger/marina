@@ -490,10 +490,13 @@ export class CustomScriptIdentity
 // restorers
 
 export function customScriptRestorerFromEsplora<T extends CustomScriptIdentityWatchOnly>(
-  toRestore: T
+  toRestore: T,
+  args: CustomRestorerOpts['customParamsByIndex'],
+  changeArgs: CustomRestorerOpts['customParamsByChangeIndex']
 ): Restorer<EsploraRestorerOpts, T> {
   return restorerFromEsplora(toRestore, function (isChange: boolean, index: number): string {
-    return toRestore.getAddress(isChange, index).confidentialAddress;
+    const params = isChange ? changeArgs[index] : args[index];
+    return toRestore.getAddress(isChange, index, params).confidentialAddress;
   });
 }
 
