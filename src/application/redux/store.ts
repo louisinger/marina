@@ -14,20 +14,20 @@ export const serializerAndDeserializer = {
 
 // loggerMiddleware is a middleware that logs actions and state after they are dispatched.
 // This middleware is not included in production builds. debug purpose only.
-const loggerMiddleware: Middleware = store => next => action => {
-  console.group(action.type)
-  console.info('dispatching', action)
-  let result = next(action)
-  console.log('next state', store.getState())
-  console.groupEnd()
-  return result
-}
+const loggerMiddleware: Middleware = (store) => (next) => (action) => {
+  console.group(action.type);
+  console.info('dispatching', action);
+  const result = next(action);
+  console.log('next state', store.getState());
+  console.groupEnd();
+  return result;
+};
 
 const create = () => {
   const sagaMiddleware = createSagaMiddleware();
-  const middlewares: Middleware[] = [sagaMiddleware]
+  const middlewares: Middleware[] = [sagaMiddleware];
   if (process.env.NODE_ENV !== 'production') {
-    middlewares.push(loggerMiddleware)
+    middlewares.push(loggerMiddleware);
   }
 
   // TODO createStore deprecated?

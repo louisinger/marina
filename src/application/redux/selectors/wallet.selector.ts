@@ -92,12 +92,17 @@ export const selectAccountsFromCoins =
 export const selectAllAccountForSigningTxState = (state: RootReducerState): Account[] => {
   if (state.connect.tx?.pset === undefined) return [];
   const decoded = decodePset(state.connect.tx.pset);
-  const inputsOutpoints = decoded.TX.ins.map((input) => toStringOutpoint({ txid: Buffer.from(input.hash).reverse().toString('hex'), vout: input.index }));
+  const inputsOutpoints = decoded.TX.ins.map((input) =>
+    toStringOutpoint({ txid: Buffer.from(input.hash).reverse().toString('hex'), vout: input.index })
+  );
   return selectAllAccounts(state).filter((account) => {
-    const accountUtxos = selectUtxosForAccount(account.getInfo().accountID, state.app.network)(state);
+    const accountUtxos = selectUtxosForAccount(
+      account.getInfo().accountID,
+      state.app.network
+    )(state);
     return accountUtxos.some((utxo) => inputsOutpoints.includes(toStringOutpoint(utxo)));
   });
-}
+};
 
 export const selectAllAccounts = (state: RootReducerState): Account[] => {
   return selectAllAccountsIDs(state)
