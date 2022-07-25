@@ -3,7 +3,6 @@ import {
   crypto,
   address,
   Psbt,
-  restorerFromEsplora,
   IdentityType,
   Transaction,
   bip341,
@@ -19,7 +18,6 @@ import type {
   IdentityInterface,
   IdentityOpts,
   Restorer,
-  EsploraRestorerOpts,
   NetworkString,
   Mnemonic,
   TemplateResult,
@@ -58,19 +56,13 @@ function makeBaseNodeFromNamespace(m: BIP32Interface, namespace: string): BIP32I
 interface ExtendedTaprootAddressInterface extends AddressInterface {
   result: TemplateResult;
   tapscriptNeeds: Record<string, ScriptInputsNeeds>; // scripthex -> needs
-  publicKey: string;
   descriptor: string;
   contract: Contract;
   constructorParams?: Record<string, string | number>;
 }
 
 export type TaprootAddressInterface = AddressInterface &
-  Omit<ExtendedTaprootAddressInterface, 'result' | 'tapscriptNeeds'> & {
-    taprootHashTree?: bip341.HashTree;
-    taprootInternalKey?: string;
-    descriptor: string;
-    contract: Contract;
-  };
+  Omit<ExtendedTaprootAddressInterface, 'result' | 'tapscriptNeeds'>;
 
 function asTaprootAddressInterface(
   extended: ExtendedTaprootAddressInterface
@@ -79,11 +71,10 @@ function asTaprootAddressInterface(
     confidentialAddress: extended.confidentialAddress,
     blindingPrivateKey: extended.blindingPrivateKey,
     derivationPath: extended.derivationPath,
-    taprootHashTree: extended.result.taprootHashTree,
-    taprootInternalKey: extended.result.taprootInternalKey,
     publicKey: extended.publicKey,
     descriptor: extended.descriptor,
     contract: extended.contract,
+    constructorParams: extended.constructorParams,
   };
 }
 
@@ -489,17 +480,6 @@ export class CustomScriptIdentity
 
 // restorers
 
-export function customScriptRestorerFromEsplora<T extends CustomScriptIdentityWatchOnly>(
-  toRestore: T,
-  args: CustomRestorerOpts['customParamsByIndex'],
-  changeArgs: CustomRestorerOpts['customParamsByChangeIndex']
-): Restorer<EsploraRestorerOpts, T> {
-  return restorerFromEsplora(toRestore, function (isChange: boolean, index: number): string {
-    const params = isChange ? changeArgs[index] : args[index];
-    return toRestore.getAddress(isChange, index, params).confidentialAddress;
-  });
-}
-
 export function restoredCustomScriptIdentity(
   contractTemplate: ContractTemplate,
   mnemonic: string,
@@ -570,7 +550,7 @@ function customRestorerFromState<R extends CustomScriptIdentityWatchOnly>(
 
     if (lastUsedExternalIndex !== undefined) {
       for (let i = 0; i <= lastUsedExternalIndex; i++) {
-        const params = customParamsByIndex[lastUsedExternalIndex];
+        const params = customParamsByIndex[i];
         const promise = identity.getNextAddress(params);
         promises.push(promise);
       }
@@ -578,7 +558,7 @@ function customRestorerFromState<R extends CustomScriptIdentityWatchOnly>(
 
     if (lastUsedInternalIndex !== undefined) {
       for (let i = 0; i <= lastUsedInternalIndex; i++) {
-        const params = customParamsByChangeIndex[lastUsedExternalIndex];
+        const params = customParamsByChangeIndex[i];
         const promise = identity.getNextChangeAddress(params);
         promises.push(promise);
       }

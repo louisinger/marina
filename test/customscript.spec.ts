@@ -8,7 +8,6 @@ import * as synthAssetArtifact from './fixtures/customscript/synthetic_asset.ion
 import * as transferWithCaptchaArtifact from './fixtures/customscript/transfer_with_captcha.ionio.json';
 import { APIURL, broadcastTx, faucet } from './_regtest';
 import type { Signer } from '@ionio-lang/ionio';
-import { H_POINT } from '@ionio-lang/ionio';
 
 const TEST_NAMESPACE = 'test';
 
@@ -96,10 +95,10 @@ describe('CustomScriptIdentity', () => {
     expect(addr.confidentialAddress).toBeDefined();
     expect(addr.blindingPrivateKey).toBeDefined();
     expect(addr.derivationPath).toBeDefined();
-    expect(addr.taprootHashTree).toBeDefined();
-    expect(addr.taprootInternalKey).toBe(H_POINT.toString('hex'));
     expect(addr.publicKey).toBeDefined();
+    expect(addr.descriptor).toBeDefined();
     expect(addr.contract).toBeDefined();
+    expect(addr.constructorParams).toBeDefined();
   });
 
   test('should be able to instatiate a contract identity, fund the contract and spend those funds', async () => {
@@ -113,10 +112,10 @@ describe('CustomScriptIdentity', () => {
     expect(addr.confidentialAddress).toBeDefined();
     expect(addr.blindingPrivateKey).toBeDefined();
     expect(addr.derivationPath).toBeDefined();
-    expect(addr.taprootHashTree).toBeDefined();
-    expect(addr.taprootInternalKey).toBe(H_POINT.toString('hex'));
     expect(addr.publicKey).toBeDefined();
+    expect(addr.descriptor).toBeDefined();
     expect(addr.contract).toBeDefined();
+    expect(addr.constructorParams).toBeDefined();
 
     await faucet(addr.confidentialAddress, 0.01);
 

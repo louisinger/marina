@@ -1,4 +1,3 @@
-import * as ecc from 'tiny-secp256k1';
 import type {
   IdentityInterface,
   MasterPublicKey,
@@ -8,7 +7,7 @@ import type {
   EsploraRestorerOpts,
   NetworkString,
 } from 'ldk';
-import { IdentityType, masterPubKeyRestorerFromEsplora } from 'ldk';
+import { masterPubKeyRestorerFromEsplora } from 'ldk';
 import { decrypt } from '../application/utils/crypto';
 import {
   newMasterPublicKey,
@@ -19,10 +18,9 @@ import type {
   ContractTemplate,
   CustomScriptIdentity,
   CustomRestorerOpts,
+  CustomScriptIdentityWatchOnly,
 } from './customscript-identity';
 import {
-  CustomScriptIdentityWatchOnly,
-  customScriptRestorerFromEsplora,
   restoredCustomScriptIdentity,
   restoredCustomScriptWatchOnlyIdentity,
 } from './customscript-identity';
@@ -55,7 +53,6 @@ export interface Account<
   type: AccountType;
   getSigningIdentity(password: string, network: NetworkString): Promise<SignID>;
   getWatchIdentity(network: NetworkString): Promise<WatchID>;
-  getDeepRestorer(network: NetworkString): Restorer<EsploraRestorerOpts, WatchID>;
   getInfo(): AccountInfoType;
 }
 
@@ -68,7 +65,9 @@ export interface AccountData {
 
 // Main Account uses the default Mnemonic derivation path
 // single-sig account used to send/receive regular assets
-export type MnemonicAccount = Account<Mnemonic, MasterPublicKey>;
+export type MnemonicAccount = Account<Mnemonic, MasterPublicKey> & {
+  getDeepRestorer(network: NetworkString): Restorer<EsploraRestorerOpts, MasterPublicKey>;
+};
 
 export interface MnemonicAccountData extends AccountData {
   type: AccountType.MainAccount;
@@ -143,21 +142,6 @@ function createCustomScriptAccount(
         data.masterBlindingKey,
         network,
         data.restorerOpts[network]
-      ),
-    getDeepRestorer: (network: NetworkString) =>
-      customScriptRestorerFromEsplora(
-        new CustomScriptIdentityWatchOnly({
-          type: IdentityType.MasterPublicKey,
-          chain: network,
-          ecclib: ecc,
-          opts: {
-            ...data.covenantDescriptors,
-            masterBlindingKey: data.masterBlindingKey,
-            masterPublicKey: data.masterXPub,
-          },
-        }),
-        data.restorerOpts[network].customParamsByIndex,
-        data.restorerOpts[network].customParamsByChangeIndex
       ),
     getInfo: () => ({
       accountID: data.covenantDescriptors.namespace,
