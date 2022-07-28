@@ -33,7 +33,14 @@ import {
 } from '../../application/redux/actions/wallet';
 import { selectBalances } from '../../application/redux/selectors/balance.selector';
 import { assetGetterFromIAssets } from '../../domain/assets';
-import type { Balance, Template, RawHex, Recipient, Utxo, AddressInterface as ProviderAddressInterface } from 'marina-provider';
+import type {
+  Balance,
+  Template,
+  RawHex,
+  Recipient,
+  Utxo,
+  AddressInterface as ProviderAddressInterface,
+} from 'marina-provider';
 import type { SignTransactionPopupResponse } from '../../presentation/connect/sign-pset';
 import type { SpendPopupResponse } from '../../presentation/connect/spend';
 import type { SignMessagePopupResponse } from '../../presentation/connect/sign-msg';
@@ -556,14 +563,14 @@ function toProviderAddress(addr: AddressInterface): ProviderAddressInterface {
     confidentialAddress: addr.confidentialAddress,
     derivationPath: addr.derivationPath,
     publicKey: addr.publicKey,
-  }
+  };
 
   if (isTaprootAddressInterface(addr)) {
     return {
       ...result,
       constructorParams: addr.constructorParams,
       descriptor: addr.descriptor,
-    }
+    };
   }
 
   return result;
