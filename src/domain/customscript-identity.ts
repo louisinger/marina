@@ -398,8 +398,6 @@ export class CustomScriptIdentity
                     bip341.findScriptPath(tree, leafHash)
                   );
 
-                pset.data.inputs[index].tapLeafScript =
-                  pset.data.inputs[index].tapLeafScript?.slice(1); // clear tapLeafScript first (we'll overwrite it)
                 pset.updateInput(index, {
                   tapLeafScript: [
                     {
