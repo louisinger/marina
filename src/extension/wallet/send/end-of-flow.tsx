@@ -62,6 +62,7 @@ const SendEndOfFlow: React.FC = () => {
           hex: toBroadcast,
         },
       });
+      await chainSource.close();
 
       // push to success page
       history.push({

@@ -104,6 +104,7 @@ export class AppStorageAPI implements AppRepository {
       const client = new ElectrumWS(wsURL);
       return new WsElectrumChainSource(client);
     } catch (e) {
+      console.error('Error while creating chain source', e);
       return null;
     }
   }

@@ -1,5 +1,5 @@
 import * as ecc from 'tiny-secp256k1';
-import ZKPlib from '@vulpemventures/secp256k1-zkp';
+import ZKPLib from '@vulpemventures/secp256k1-zkp';
 import type { BIP32Interface } from 'bip32';
 import BIP32Factory from 'bip32';
 import { address, networks, payments } from 'liquidjs-lib';
@@ -18,12 +18,12 @@ import type { AccountDetails, AppRepository, WalletRepository } from '../infrast
 import type { Argument } from '@ionio-lang/ionio';
 import { Contract } from '@ionio-lang/ionio';
 import { h2b } from '../utils';
+import { ZKPInterface } from 'liquidjs-lib/src/confidential';
 
 export const MainAccountLegacy = 'mainAccountLegacy';
 export const MainAccount = 'mainAccount';
 export const MainAccountTest = 'mainAccountTest';
 
-const zkp = await ZKPlib();
 const bip32 = BIP32Factory(ecc);
 const slip77 = SLIP77Factory(ecc);
 
@@ -44,7 +44,7 @@ type AccountOpts = {
 };
 
 export class AccountFactory {
-  private chainSources = new Map<NetworkString, ChainSource>();
+  chainSources = new Map<NetworkString, ChainSource>();
   masterBlindingKey: string | undefined;
 
   private constructor(private walletRepository: WalletRepository) {}
@@ -164,6 +164,7 @@ export class Account {
           ...details,
         }));
       case AccountType.Ionio:
+        const zkp = await ZKPLib();
         return Object.entries(scripts).map(([script, details]) => ({
           confidentialAddress: this.createTaprootAddress(Buffer.from(script, 'hex')),
           ...details,
@@ -205,7 +206,7 @@ export class Account {
       case AccountType.Ionio:
         if (!artifactWithArgs)
           throw new Error('Artifact with args is required for Ionio account type');
-        [script, scriptDetails] = this.createTaprootScript(publicKeys[0], artifactWithArgs);
+        [script, scriptDetails] = this.createTaprootScript(publicKeys[0], artifactWithArgs, await ZKPLib());
         confidentialAddress = this.createTaprootAddress(Buffer.from(script, 'hex'));
         break;
       default:
@@ -233,7 +234,7 @@ export class Account {
             scriptDetails.artifact,
             scriptDetails.params,
             networks[scriptDetails.network],
-            { ecc, zkp }
+            { ecc, zkp: await ZKPLib() }
           )
         : undefined,
     };
@@ -257,6 +258,7 @@ export class Account {
 
     const walletChains = [0, 1];
     for (const i of walletChains) {
+      tempRestoredScripts = {};
       const isInternal = i === 1;
       let batchCount = isInternal ? nextIndexes.internal : nextIndexes.external;
       let unusedScriptCounter = 0;
@@ -411,7 +413,8 @@ export class Account {
 
   private createTaprootScript(
     { publicKey, derivationPath }: PubKeyWithRelativeDerivationPath,
-    { artifact, args }: ArtifactWithConstructorArgs
+    { artifact, args }: ArtifactWithConstructorArgs,
+    zkp: ZKPInterface
   ): [string, ScriptDetails] {
     const constructorArgs: Argument[] = (artifact.constructorInputs || []).map(({ name }) => {
       // inject xOnlyPublicKey argument if one of the contructor args is named like the account name

@@ -26,6 +26,7 @@ export class Subscriber {
     await this.subscribeAllAccounts();
     this.appRepository.onNetworkChanged(async (network: NetworkString) => {
       await this.unsubscribeAllAccounts();
+      await this.chainSource?.close();
       this.chainSource = await this.appRepository.getChainSource(network);
       if (!this.chainSource) throw ChainSourceError(network);
       await this.subscribeAllAccounts();
@@ -37,6 +38,7 @@ export class Subscriber {
       await this.unsubscribeAccount(name);
     }
     this.subscribedAccounts.clear();
+    await this.chainSource?.close();
   }
 
   async subscribeAccount(name: string, force = false): Promise<void> {

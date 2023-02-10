@@ -1,4 +1,5 @@
 import { Observable } from './observable';
+import WebSocket from 'isomorphic-ws';
 
 type RpcResponse = {
   jsonrpc: string;
