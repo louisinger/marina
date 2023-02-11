@@ -1,4 +1,4 @@
-import type { Pset, UpdaterInput, UpdaterOutput } from 'liquidjs-lib';
+import { crypto, Pset, UpdaterInput, UpdaterOutput } from 'liquidjs-lib';
 import { Creator, Transaction, Updater, address, networks, payments } from 'liquidjs-lib';
 import type {
   AddressRecipient,
@@ -406,4 +406,15 @@ export async function makeSendPsetFromMainAccounts(
 
 export function h2b(hex: string): Buffer {
   return Buffer.from(hex, 'hex');
+}
+
+// slip13: https://github.com/satoshilabs/slips/blob/master/slip-0013.md#hd-structure
+export function SLIP13(namespace: string): string {
+  const hash = crypto.sha256(Buffer.from(namespace));
+  const hash128 = hash.subarray(0, 16);
+  const A = hash128.readUInt32LE(0) || 0x80000000;
+  const B = hash128.readUint32LE(4) || 0x80000000;
+  const C = hash128.readUint32LE(8) || 0x80000000;
+  const D = hash128.readUint32LE(12) || 0x80000000;
+  return `m/${A}/${B}/${C}/${D}`;
 }

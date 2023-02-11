@@ -240,7 +240,7 @@ export class Account {
     };
   }
 
-  async sync(gapLimit = GAP_LIMIT): Promise<{
+  async sync(gapLimit = GAP_LIMIT, start?: { internal: number, external: number }): Promise<{
     next: { internal: number; external: number };
   }> {
     if (!this.chainSource) throw new Error('No chain source, cannot sync');
@@ -254,13 +254,12 @@ export class Account {
     let restoredScripts: Record<string, ScriptDetails> = {};
     let tempRestoredScripts: Record<string, ScriptDetails> = {};
 
-    const nextIndexes = await this.getNextIndexes();
-
+    const indexes = start ?? await this.getNextIndexes();
     const walletChains = [0, 1];
     for (const i of walletChains) {
       tempRestoredScripts = {};
       const isInternal = i === 1;
-      let batchCount = isInternal ? nextIndexes.internal : nextIndexes.external;
+      let batchCount = isInternal ? indexes.internal : indexes.external;
       let unusedScriptCounter = 0;
 
       while (unusedScriptCounter <= gapLimit) {
@@ -284,8 +283,8 @@ export class Account {
             restoredScripts = { ...restoredScripts, ...tempRestoredScripts };
             tempRestoredScripts = {};
             const newMaxIndex = index + batchCount + 1;
-            if (isInternal) nextIndexes.internal = newMaxIndex;
-            else nextIndexes.external = newMaxIndex;
+            if (isInternal) indexes.internal = newMaxIndex;
+            else indexes.external = newMaxIndex;
 
             // update the history set
             for (const { tx_hash, height } of history) {
@@ -305,7 +304,7 @@ export class Account {
       this.walletRepository.updateAccountKeyIndex(
         this.name,
         this.network.name as NetworkString,
-        nextIndexes
+        indexes
       ),
       this.walletRepository.updateTxDetails(
         Object.fromEntries(
@@ -317,8 +316,8 @@ export class Account {
 
     return {
       next: {
-        internal: nextIndexes.internal,
-        external: nextIndexes.external,
+        internal: indexes.internal,
+        external: indexes.external,
       },
     };
   }

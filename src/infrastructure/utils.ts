@@ -16,6 +16,14 @@ const initialNextKeyIndexes: Record<NetworkString, { external: number; internal:
   testnet: { external: 0, internal: 0 },
 };
 
+export function makeAccountXPub(seed: Buffer, basePath: string) {
+  return bip32
+    .fromSeed(seed)
+    .derivePath(basePath)
+    .neutered()
+    .toBase58();
+}
+
 export async function initWalletRepository(walletRepository: WalletRepository, onboardingMnemonic: string, onboardingPassword: string) {
   const encryptedData = await encrypt(onboardingMnemonic, onboardingPassword);
   const seed = mnemonicToSeedSync(onboardingMnemonic);
@@ -26,11 +34,7 @@ export async function initWalletRepository(walletRepository: WalletRepository, o
 
   // set the default accounts data (MainAccount, MainAccountTest, MainAccountLegacy)
   // cointype account (mainnet)
-  const defaultMainAccountXPub = bip32
-    .fromSeed(seed)
-    .derivePath(Account.BASE_DERIVATION_PATH)
-    .neutered()
-    .toBase58();
+  const defaultMainAccountXPub = makeAccountXPub(seed, Account.BASE_DERIVATION_PATH);
   await walletRepository.updateAccountDetails(MainAccount, {
     accountID: MainAccount,
     type: AccountType.P2WPKH,
@@ -41,11 +45,7 @@ export async function initWalletRepository(walletRepository: WalletRepository, o
   });
 
   // cointype account (testnet & regtest)
-  const defaultMainAccountXPubTestnet = bip32
-    .fromSeed(seed)
-    .derivePath(Account.BASE_DERIVATION_PATH_TESTNET)
-    .neutered()
-    .toBase58();
+  const defaultMainAccountXPubTestnet = makeAccountXPub(seed, Account.BASE_DERIVATION_PATH_TESTNET);
   await walletRepository.updateAccountDetails(MainAccountTest, {
     accountID: MainAccountTest,
     type: AccountType.P2WPKH,
@@ -56,11 +56,7 @@ export async function initWalletRepository(walletRepository: WalletRepository, o
   });
 
   // legacy account
-  const defaultLegacyMainAccountXPub = bip32
-    .fromSeed(seed)
-    .derivePath(Account.BASE_DERIVATION_PATH_LEGACY)
-    // .neutered()
-    .toBase58();
+  const defaultLegacyMainAccountXPub = makeAccountXPub(seed, Account.BASE_DERIVATION_PATH_LEGACY);
   await walletRepository.updateAccountDetails(MainAccountLegacy, {
     accountID: MainAccountLegacy,
     type: AccountType.P2WPKH,
