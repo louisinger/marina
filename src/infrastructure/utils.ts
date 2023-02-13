@@ -1,5 +1,5 @@
 import * as ecc from "tiny-secp256k1";
-import { mnemonicToSeedSync } from "bip39";
+import { mnemonicToSeed } from "bip39";
 import { AccountType, NetworkString } from "marina-provider";
 import { Account, MainAccount, MainAccountTest, MainAccountLegacy } from "../domain/account";
 import { encrypt } from "../encryption";
@@ -26,7 +26,7 @@ export function makeAccountXPub(seed: Buffer, basePath: string) {
 
 export async function initWalletRepository(walletRepository: WalletRepository, onboardingMnemonic: string, onboardingPassword: string) {
   const encryptedData = await encrypt(onboardingMnemonic, onboardingPassword);
-  const seed = mnemonicToSeedSync(onboardingMnemonic);
+  const seed = await mnemonicToSeed(onboardingMnemonic);
   const masterBlindingKey = slip77.fromSeed(seed).masterKey.toString('hex');
 
   // set the global seed data

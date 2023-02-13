@@ -174,7 +174,7 @@ export class WalletStorageAPI implements WalletRepository {
     const walletOutputs = new Set<string>();
 
     const transactions = Object.values(txDetails)
-      .filter((tx) => tx.hex)
+      .filter((tx) => tx?.hex)
       .map((tx) => Transaction.fromHex(tx.hex!));
     for (const tx of transactions) {
       for (const input of tx.ins) {

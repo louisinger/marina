@@ -11,4 +11,5 @@ module.exports = {
     '.+\\.ts$': 'ts-jest',
   },
   transformIgnorePatterns: ['node_modules/(?!(taxi-protobuf)/)"'],
+  setupFilesAfterEnv: ['<rootDir>/test/setup.js'],
 };

@@ -1,5 +1,6 @@
 import SafeEventEmitter from '@metamask/safe-event-emitter';
 import browser from 'webextension-polyfill';
+import zkp from '@vulpemventures/secp256k1-zkp';
 import type { OpenPopupMessage, PopupName } from '../domain/message';
 import {
   isLogInMessage,
@@ -15,8 +16,11 @@ import { AssetStorageAPI } from '../infrastructure/storage/asset-repository';
 import { TaxiStorageAPI } from '../infrastructure/storage/taxi-repository';
 import { WalletStorageAPI } from '../infrastructure/storage/wallet-repository';
 import { TaxiUpdater } from './taxi';
-import { Updater } from './updater';
+import { UpdaterService } from './updater';
 import { tabIsOpen } from './utils';
+
+// top-level await supported via webpack
+const zkpLib = await zkp();
 
 const POPUP_RESPONSE = 'popup-response';
 
@@ -29,7 +33,7 @@ const appRepository = new AppStorageAPI();
 const assetRepository = new AssetStorageAPI(walletRepository);
 const taxiRepository = new TaxiStorageAPI(assetRepository, appRepository);
 
-const updaterService = new Updater(walletRepository, appRepository, assetRepository);
+const updaterService = new UpdaterService(walletRepository, appRepository, assetRepository, zkpLib);
 const subscriberService = new Subscriber(walletRepository, appRepository);
 const taxiService = new TaxiUpdater(taxiRepository, appRepository);
 
