@@ -2,7 +2,6 @@ import type { BrokerOption } from '../broker';
 import Broker from '../broker';
 import type { MessageHandler } from '../../domain/message';
 import {
-  subscribeMessage,
   newErrorResponseMessage,
   newSuccessResponseMessage,
 } from '../../domain/message';
@@ -229,14 +228,12 @@ export default class MarinaBroker extends Broker<keyof Marina> {
         case 'getNextAddress': {
           await this.checkHostnameAuthorization();
           const nextAddress = await this.getNextAddress(false, params || []);
-          this.backgroundScriptPort.postMessage(subscribeMessage(this.selectedAccount));
           return successMsg(nextAddress);
         }
 
         case 'getNextChangeAddress': {
           await this.checkHostnameAuthorization();
           const nextAddress = await this.getNextAddress(true, params || []);
-          this.backgroundScriptPort.postMessage(subscribeMessage(this.selectedAccount));
           return successMsg(nextAddress);
         }
 
@@ -316,7 +313,6 @@ export default class MarinaBroker extends Broker<keyof Marina> {
               }),
               this.walletRepository.addTransactions(network, txid),
             ]);
-            this.backgroundScriptPort.postMessage(subscribeMessage(this.selectedAccount));
             return successMsg({ txid, hex: signedTxHex });
           } catch (e) {
             console.warn('broadcasting failed, returning the signed tx hex', e);

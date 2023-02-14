@@ -1,6 +1,7 @@
 import { crypto, Pset, UpdaterInput, UpdaterOutput } from 'liquidjs-lib';
 import { Creator, Transaction, Updater, address, networks, payments } from 'liquidjs-lib';
 import type {
+  AccountID,
   AddressRecipient,
   DataRecipient,
   NetworkString,
@@ -194,11 +195,11 @@ type MakeSendPsetResult = {
 };
 
 // create a pset with the given recipients and data recipients
-// select utxos from the main accounts
-export async function makeSendPsetFromMainAccounts(
+export async function makeSendPset(
   recipients: AddressRecipient[],
   dataRecipients: DataRecipient[],
-  feeAssetHash: string
+  feeAssetHash: string,
+  fromAccounts: AccountID[] = [MainAccount, MainAccountLegacy, MainAccountTest]
 ): Promise<MakeSendPsetResult> {
   const pset = Creator.newPset();
   let network = await appRepository.getNetwork();
@@ -212,9 +213,7 @@ export async function makeSendPsetFromMainAccounts(
       .filter(({ value }) => value > 0)
       .map(({ asset, value }) => ({ asset, amount: value })),
     true,
-    MainAccount,
-    MainAccountLegacy,
-    MainAccountTest
+    ...fromAccounts
   );
 
   const ins: UpdaterInput[] = [];
@@ -324,9 +323,7 @@ export async function makeSendPsetFromMainAccounts(
         network,
         [{ asset: networks[network].assetHash, amount: feeAmount }],
         true,
-        MainAccount,
-        MainAccountLegacy,
-        MainAccountTest
+        ...fromAccounts
       );
 
       const newWitnessUtxos = await Promise.all(

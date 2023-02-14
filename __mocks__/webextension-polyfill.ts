@@ -13,7 +13,6 @@ let changes: Record<string, Storage.StorageChange> = {};
 const listeners = new Set<(changes: Record<string, Storage.StorageChange>, areaName: string) => Promise<void> | void>();
 
 async function processChanges() {
-    console.warn('PROCESS CHANGES', changes)
     const changesCopy = { ...changes };
     changes = {}; // Must reset changes before processing listeners
     await Promise.allSettled(Array.from(listeners).map((listener) => listener(changesCopy, 'local')));
@@ -74,7 +73,6 @@ Browser.storage.local = {
 
 Browser.storage.onChanged = {
     addListener: jest.fn((listener) => {
-        console.warn('ADD LISTENER');
         listeners.add(listener);
     }),
     removeListener: jest.fn((listener) => {

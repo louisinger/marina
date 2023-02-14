@@ -35,11 +35,9 @@ export class WsElectrumChainSource implements ChainSource {
   constructor(private ws: ElectrumWS) {}
 
   async fetchTransactions(txids: string[]): Promise<{ txID: string; hex: string }[]> {
-    console.warn('FLAG')
     const responses = await this.ws.batchRequest<string[]>(
       ...txids.map((txid) => ({ method: GetTransactionMethod, params: [txid] }))
     );
-    console.warn('responses', responses)
     return responses.map((hex, i) => ({ txID: txids[i], hex }));
   }
 

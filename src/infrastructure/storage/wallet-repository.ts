@@ -134,11 +134,13 @@ export class WalletStorageAPI implements WalletRepository {
   }
 
   async updateScriptDetails(scriptToDetails: Record<string, ScriptDetails>): Promise<void> {
+    const currentDetails = await this.getScriptDetails(...Object.keys(scriptToDetails));
+
     return Browser.storage.local.set(
       Object.fromEntries(
         Object.entries(scriptToDetails).map(([script, details]) => [
           ScriptDetailsKey.make(script),
-          details,
+          { ...details, networks: [...new Set([...(currentDetails[script]?.networks ?? []), ...details.networks])] },
         ])
       )
     );
@@ -210,10 +212,13 @@ export class WalletStorageAPI implements WalletRepository {
         accountNames.includes(scriptDetails[script].accountName)
       );
     }
+
+    console.log(scripts);
     const allUtxos = await this.getUtxosFromTransactions(
       scripts.map((s) => Buffer.from(s, 'hex')),
       network
     );
+    console.log(allUtxos)
 
     const lockedOutpoints = await this.getLockedOutpoints();
     const unlockedUtxos = [];
@@ -374,7 +379,7 @@ export class WalletStorageAPI implements WalletRepository {
       Object.entries(wholeStorage)
         .filter(
           ([key, value]) =>
-            ScriptDetailsKey.is(key) && names.includes((value as ScriptDetails).accountName)
+            ScriptDetailsKey.is(key) && names.includes((value as ScriptDetails).accountName) && (value as ScriptDetails).networks.includes(network)
         )
         .map(([key, value]) => [ScriptDetailsKey.decode(key)[0], value as ScriptDetails])
     );
@@ -386,7 +391,7 @@ export class WalletStorageAPI implements WalletRepository {
     return Object.entries(wholeStorage)
       .filter(
         ([key, value]) =>
-          ScriptDetailsKey.is(key) && networks.includes((value as ScriptDetails).network)
+          ScriptDetailsKey.is(key) && (value as ScriptDetails).networks.some((network) => networks.includes(network))
       )
       .map(([key]) => ScriptDetailsKey.decode(key)[0]);
   }

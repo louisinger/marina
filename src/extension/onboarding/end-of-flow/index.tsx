@@ -63,10 +63,9 @@ const EndOfFlowOnboarding: React.FC = () => {
       ];
 
       // restore the accounts
-      const result = await Promise.allSettled(
+      await Promise.allSettled(
         accountsToRestore.map((account) => account.sync(GAP_LIMIT))
       );
-      console.warn(result);
 
       // set the popup
       await Browser.browserAction.setPopup({ popup: 'popup.html' });

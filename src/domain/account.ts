@@ -123,7 +123,6 @@ export class Account {
       await this.walletRepository.getAccountScripts(this.network.name as NetworkString, this.name)
     ).map((b) => Buffer.from(b, 'hex'));
 
-    console.warn(`subscribing to ${scripts.length} scripts`);
     for (const script of scripts) {
       await this.chainSource.subscribeScriptStatus(script, async (_: string, __: string | null) => {
         const history = await this.chainSource.fetchHistories([script]);
@@ -148,7 +147,7 @@ export class Account {
     }
   }
 
-  async getAllAddresses(): Promise<Address[]> {
+  async getAllAddresses(): Promise<(Address)[]> {
     if (!this.walletRepository) throw new Error('No wallet repository, cannot get all addresses');
     if (!this.name) throw new Error('No name, cannot get all addresses');
     const type = await this.getAccountType();
@@ -169,7 +168,7 @@ export class Account {
           confidentialAddress: this.createTaprootAddress(Buffer.from(script, 'hex')),
           ...details,
           contract: isIonioScriptDetails(details)
-            ? new Contract(details.artifact, details.params, networks[details.network], {
+            ? new Contract(details.artifact, details.params, this.network, {
                 ecc,
                 zkp,
               })
@@ -195,8 +194,8 @@ export class Account {
     const type = await this.getAccountType();
 
     let confidentialAddress = undefined;
-    let script = undefined;
-    let scriptDetails = undefined;
+    let script: string | undefined = undefined;
+    let scriptDetails: ScriptDetails | undefined = undefined;
 
     switch (type) {
       case AccountType.P2WPKH:
@@ -233,7 +232,7 @@ export class Account {
         ? new Contract(
             scriptDetails.artifact,
             scriptDetails.params,
-            networks[scriptDetails.network],
+            this.network,
             { ecc, zkp: await ZKPLib() }
           )
         : undefined,
@@ -392,7 +391,7 @@ export class Account {
       {
         derivationPath,
         accountName: this.name,
-        network: this.network.name as NetworkString,
+        networks: [this.network.name as NetworkString],
         blindingPrivateKey: this.deriveBlindingKey(script).privateKey.toString('hex'),
       },
     ];
@@ -432,7 +431,7 @@ export class Account {
     const contract = new Contract(artifact, constructorArgs, this.network, { ecc, zkp });
     const scriptDetails: IonioScriptDetails = {
       accountName: this.name,
-      network: this.network.name as NetworkString,
+      networks: [this.network.name as NetworkString],
       blindingPrivateKey: this.deriveBlindingKey(contract.scriptPubKey).privateKey.toString('hex'),
       derivationPath,
       artifact,

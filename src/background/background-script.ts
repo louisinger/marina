@@ -5,11 +5,10 @@ import type { OpenPopupMessage, PopupName } from '../domain/message';
 import {
   isLogInMessage,
   isLogOutMessage,
-  isSubscribeMessage,
   isOpenPopupMessage,
   isPopupResponseMessage,
 } from '../domain/message';
-import { Subscriber } from './subscriber';
+import { SubscriberService } from './subscriber';
 import { INITIALIZE_WELCOME_ROUTE } from '../extension/routes/constants';
 import { AppStorageAPI } from '../infrastructure/storage/app-repository';
 import { AssetStorageAPI } from '../infrastructure/storage/asset-repository';
@@ -34,7 +33,7 @@ const assetRepository = new AssetStorageAPI(walletRepository);
 const taxiRepository = new TaxiStorageAPI(assetRepository, appRepository);
 
 const updaterService = new UpdaterService(walletRepository, appRepository, assetRepository, zkpLib);
-const subscriberService = new Subscriber(walletRepository, appRepository);
+const subscriberService = new SubscriberService(walletRepository, appRepository);
 const taxiService = new TaxiUpdater(taxiRepository, appRepository);
 
 // at startup, check if the user is logged in
@@ -141,17 +140,6 @@ browser.runtime.onConnect.addListener((port: browser.Runtime.Port) => {
     if (isPopupResponseMessage(message)) {
       // propagate popup response
       eventEmitter.emit(POPUP_RESPONSE, message);
-      return;
-    }
-
-    if (isSubscribeMessage(message)) {
-      subscriberService
-        .subscribeAccount(message.data.account, true)
-        .then(() => port.postMessage({ data: true }))
-        .catch((error: any) => {
-          console.error(error);
-          port.postMessage({ data: false, error: error.message });
-        });
       return;
     }
 

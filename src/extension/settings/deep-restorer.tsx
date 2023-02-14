@@ -10,7 +10,6 @@ import {
 } from '../../infrastructure/storage/common';
 import { AccountFactory } from '../../domain/account';
 import Browser from 'webextension-polyfill';
-import { subscribeMessage } from '../../domain/message';
 import { AccountType } from 'marina-provider';
 
 type GapLimit = 20 | 40 | 80 | 160;
@@ -34,7 +33,6 @@ const SettingsDeepRestorer: React.FC = () => {
         if (details.type !== AccountType.P2WPKH) continue; // only P2WPKH are restorable 
         const account = await factory.make(network, accountName);
         await account.sync(gapLimit, { internal: 0, external: 0 }); // force restore from 0
-        port.postMessage(subscribeMessage(accountName));
       }
     } catch (e) {
       console.error(e);
