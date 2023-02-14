@@ -1,7 +1,8 @@
 import { generateMnemonic, mnemonicToSeed } from 'bip39';
-import { networks, Transaction } from 'liquidjs-lib';
+import * as ecc from 'tiny-secp256k1';
+import { AssetHash, Extractor, networks, Pset, Transaction } from 'liquidjs-lib';
 import { toOutputScript } from 'liquidjs-lib/src/address';
-import { AccountID, AccountType } from 'marina-provider';
+import { AccountID, AccountType, Address, IonioScriptDetails, isIonioScriptDetails } from 'marina-provider';
 import { AccountFactory, MainAccount, MainAccountLegacy, MainAccountTest } from '../src/domain/account';
 import { BlinderService } from '../src/domain/blinder';
 import { SignerService } from '../src/domain/signer';
@@ -16,7 +17,7 @@ import { computeBalances, makeSendPset, SLIP13 } from '../src/utils';
 import { faucet, sleep } from './_regtest';
 import captchaArtifact from './fixtures/customscript/transfer_with_captcha.ionio.json';
 import synthArtifact from './fixtures/customscript/synthetic_asset.ionio.json';
-import { Artifact, replaceArtifactConstructorWithArguments, templateString } from '@ionio-lang/ionio';
+import { Artifact, Contract, replaceArtifactConstructorWithArguments, templateString } from '@ionio-lang/ionio';
 
 // we need this to mock the browser.storage.local calls in repositories
 jest.mock('webextension-polyfill');
@@ -190,12 +191,16 @@ describe('Application Layer', () => {
     describe('BlinderService & SignerService', () => {
         let accountName: AccountID;
         let ionioAccountName: AccountID;
+        let captchaAddress: Address;
 
         beforeAll(async () => {
             const zkpLib = await require('@vulpemventures/secp256k1-zkp')();
             const updater = new UpdaterService(walletRepository, appRepository, assetRepository, zkpLib);
+            const subscriber = new SubscriberService(walletRepository, appRepository);
             const seed = await mnemonicToSeed(mnemonic);
             await updater.start();
+            await subscriber.start();
+
             accountName = 'signerServiceTestAccount' + Math.floor(Math.random() * 1000);
             const baseDerivationPath = SLIP13(accountName);
             const masterXPub = makeAccountXPub(seed, baseDerivationPath);
@@ -220,6 +225,7 @@ describe('Application Layer', () => {
                 accountNetworks: ['regtest'],
                 type: AccountType.Ionio,
                 masterXPub: masterXPubIonio,
+                baseDerivationPath: baseIonioPath,
                 nextKeyIndexes: {
                     liquid: { external: 0, internal: 0 },
                     testnet: { external: 0, internal: 0 },
@@ -231,19 +237,19 @@ describe('Application Layer', () => {
             const address = await account.getNextAddress(false);
             await faucet(address.confidentialAddress, 1);
             await faucet(address.confidentialAddress, 1);
-            await sleep(5000); // wait for the txs to be confirmed
-            await account.sync(20, { internal: 0, external: 0 });
 
             // create the Ionio artifact address
             const ionioAccount = await factory.make('regtest', ionioAccountName);
-            const captchaAddress = ionioAccount.getNextAddress(false, { 
-                artifact: replaceArtifactConstructorWithArguments(captchaArtifact as Artifact, [templateString('sum'), templateString(ionioAccountName)]), 
+            captchaAddress = await ionioAccount.getNextAddress(false, {
+                artifact: replaceArtifactConstructorWithArguments(captchaArtifact as Artifact, [templateString('sum'), templateString(ionioAccountName)]),
                 args: { sum: 10 }
             })
-
-            await updater.waitForProcessing();
+            await faucet(captchaAddress.confidentialAddress, 1);
+            await sleep(5000); // wait for the txs to be confirmed
+            await account.sync(20, { internal: 0, external: 0 });
             await updater.stop();
-        }, 10_000);
+            await subscriber.stop();
+        }, 20_000);
 
         it('should sign all the accounts inputs (and blind outputs)', async () => {
             const zkpLib = await require('@vulpemventures/secp256k1-zkp')();
@@ -273,8 +279,52 @@ describe('Application Layer', () => {
 
         describe('Ionio contract', () => {
             it('transfer_with_captcha.ionio contract', async () => {
+                const zkpLib = await require('@vulpemventures/secp256k1-zkp')();
+                const blinder = new BlinderService(walletRepository, zkpLib);
+                const signer = await SignerService.fromPassword(walletRepository, appRepository, PASSWORD);
 
-            })
+                if (isIonioScriptDetails(captchaAddress)) {
+                    const contract = new Contract(
+                        captchaAddress.artifact,
+                        captchaAddress.params,
+                        networks.regtest,
+                        { ecc, zkp: zkpLib }
+                    );
+
+                    const utxo = (await walletRepository.getUtxos('regtest', ionioAccountName))[0];
+                    expect(utxo.blindingData).toBeTruthy();
+                    const witnessUtxo = await walletRepository.getWitnessUtxo(utxo.txID, utxo.vout);
+                    expect(witnessUtxo).toBeTruthy();
+
+                    const tx = contract
+                        .from(utxo.txID, utxo.vout, witnessUtxo!, {
+                            asset: AssetHash.fromHex(utxo.blindingData!.asset).bytesWithoutPrefix,
+                            value: utxo.blindingData!.value.toString(10),
+                            assetBlindingFactor: Buffer.from(utxo.blindingData!.assetBlindingFactor, 'hex'),
+                            valueBlindingFactor: Buffer.from(utxo.blindingData!.valueBlindingFactor, 'hex'),
+                        })
+                        .functions.transferWithSum(8, 2, {
+                            signTransaction: async (psetb64: string) => {
+                                const pset = Pset.fromBase64(psetb64);
+                                const signedPset = await signer.signPset(pset);
+                                return signedPset.toBase64();
+                            }
+                        })
+                        .withRecipient(
+                            'el1qqge8cmyqh0ttlmukx3vrfx6escuwn9fp6vukug85m67qx4grus5llwvmctt7nr9vyzafy4ntn7l6y74cvvgywsmnnzg25x77e',
+                            1_00_000_000 - 800, networks.regtest.assetHash, 0
+                        )
+                        .withFeeOutput(800);
+
+                    const signed = await tx.unlock();
+                    const transaction = Extractor.extract(signed.pset);
+                    const hex = transaction.toHex();
+                    const txID = await factory.chainSources.get('regtest')?.broadcastTransaction(hex);
+                    expect(txID).toEqual(transaction.getId());
+                } else {
+                    throw new Error('Not an IonioScriptDetails');
+                }
+            }, 12_000)
         })
     })
 

@@ -212,13 +212,10 @@ export class WalletStorageAPI implements WalletRepository {
         accountNames.includes(scriptDetails[script].accountName)
       );
     }
-
-    console.log(scripts);
     const allUtxos = await this.getUtxosFromTransactions(
       scripts.map((s) => Buffer.from(s, 'hex')),
       network
     );
-    console.log(allUtxos)
 
     const lockedOutpoints = await this.getLockedOutpoints();
     const unlockedUtxos = [];
@@ -408,7 +405,6 @@ export class WalletStorageAPI implements WalletRepository {
   private async lockOutpoints(outpoints: Array<{ txID: string; vout: number }>): Promise<void> {
     const { [WalletStorageKey.LOCKED_OUTPOINTS]: lockedOutpoints } =
       await Browser.storage.local.get(WalletStorageKey.LOCKED_OUTPOINTS);
-    console.log('lockOutpoints', outpoints, lockedOutpoints);
     const current = lockedOutpoints ?? [];
     const until = Date.now() + WalletStorageAPI.LOCKTIME;
     for (const outpoint of outpoints) {

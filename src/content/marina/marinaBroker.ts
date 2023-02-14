@@ -182,7 +182,7 @@ export default class MarinaBroker extends Broker<keyof Marina> {
 
   private marinaMessageHandler: MessageHandler<keyof Marina> = async ({ id, name, params }) => {
     if (!this.hostname) throw MarinaBroker.NotSetUpError;
-    const successMsg = <T = any>(data?: T) => newSuccessResponseMessage(id, data);
+    const successMsg: Function = <T = any>(data?: T) => newSuccessResponseMessage(id, data);
 
     try {
       switch (name) {
@@ -291,11 +291,9 @@ export default class MarinaBroker extends Broker<keyof Marina> {
             feeAsset,
           });
 
-          console.log('SPEND');
           const { accepted, signedTxHex } = await this.openAndWaitPopup<SpendPopupResponse>(
             'spend'
           );
-          console.log('accepted', accepted, 'signedTxHex', signedTxHex);
 
           if (!accepted) throw new Error('the user rejected the create tx request');
           if (!signedTxHex) throw new Error('something went wrong with the tx crafting');
@@ -440,7 +438,6 @@ export default class MarinaBroker extends Broker<keyof Marina> {
           const { accepted } = await this.openAndWaitPopup<CreateAccountPopupResponse>(
             'create-account'
           );
-          console.log('create account response', accepted);
           if (!accepted) throw new Error('user rejected the create account request');
 
           return successMsg(accepted);

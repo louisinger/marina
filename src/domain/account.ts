@@ -426,8 +426,6 @@ export class Account {
       }
       return param;
     });
-    console.log(artifact);
-
     const contract = new Contract(artifact, constructorArgs, this.network, { ecc, zkp });
     const scriptDetails: IonioScriptDetails = {
       accountName: this.name,

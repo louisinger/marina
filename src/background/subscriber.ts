@@ -42,7 +42,6 @@ export class SubscriberService {
     Browser.storage.onChanged.addListener(async (changes: Record<string, Browser.Storage.StorageChange>, areaName: string) => {
       if (areaName !== 'local') return;
       for (const key of Object.keys(changes)) {
-        console.warn(changes)
         // check if new script has been generated
         if (ScriptDetailsKey.is(key)) {
           const [script] = ScriptDetailsKey.decode(key);
